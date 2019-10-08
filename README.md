@@ -1,7 +1,7 @@
 # STVEN_rPPGNet
 Main code of **ICCV2019 paper "Remote Heart Rate Measurement from Highly Compressed Facial Videos: an End-to-end Deep Learning Solution with Video Enhancement"**.    
 
-Note that he specific **dataloader, data preprocessing and postprocessing** should be done by users depending on particular datasets.   
+Note that the specific **dataloader, data preprocessing and postprocessing** should be done by users depending on particular datasets.   
 
 ![image](https://github.com/ZitongYu/STVEN_rPPGNet/blob/master/network.png)  
 
