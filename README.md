@@ -10,7 +10,7 @@ Citation
 If you use the STVEN or rPPGNet please cite:  
 
 >@inproceedings{yu2019remote,  
->&nbsp;&nbsp;&nbsp;&nbsp;title={Remote Heart Rate Measurement from Highly Compressed Facial Videos: an End-to-end Deep Learning Solution with Video Enhancement}, 
+>&nbsp;&nbsp;&nbsp;&nbsp;title={Remote Heart Rate Measurement from Highly Compressed Facial Videos: an End-to-end Deep Learning Solution with Video Enhancement},      
 >&nbsp;&nbsp;&nbsp;&nbsp;author={Yu, Zitong and Peng, Wei and Li, Xiaobai and Hong, Xiaopeng and Zhao, Guoying},  
 >&nbsp;&nbsp;&nbsp;&nbsp;booktitle= {International Conference on Computer Vision (ICCV)},  
 >&nbsp;&nbsp;&nbsp;&nbsp;year = {2019}  
