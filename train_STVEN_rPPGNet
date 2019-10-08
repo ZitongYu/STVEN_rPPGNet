@@ -1,0 +1,141 @@
+import torch
+from models.rPPGNet import *
+from models.STVEN import *
+
+'''  ###############################################################
+#
+#   Step 1:  two loss function for STVEN
+#          1.1   torch.mean(torch.abs(x_reconst - video_y_GT))  for L1 reconstruction loss
+#          1.2   psnr()  for L2 reconstruction loss
+#             
+#            two loss function for rPPGNet
+#          1.3   nn.BCELoss()  for skin segmentation
+#          1.4   Neg_Pearson()  for rPPG signal regression
+#
+'''  ###############################################################
+
+def psnr(self, img, img_g):
+        
+        criterionMSE = nn.MSELoss() #.to(device)
+        mse = criterionMSE(img, img_g)
+        psnr = 10 * torch.log10(1./ (mse+10e-8)) #20 *
+
+        return  psnr
+
+
+class Neg_Pearson(nn.Module):    # Pearson range [-1, 1] so if < 0, abs|loss| ; if >0, 1- loss
+    def __init__(self):
+        super(Neg_Pearson,self).__init__()
+        return
+    def forward(self, preds, labels):       # all variable operation
+        loss = 0
+        for i in range(preds.shape[0]):
+            sum_x = torch.sum(preds[i])                # x
+            sum_y = torch.sum(labels[i])               # y
+            sum_xy = torch.sum(preds[i]*labels[i])        # xy
+            sum_x2 = torch.sum(torch.pow(preds[i],2))  # x^2
+            sum_y2 = torch.sum(torch.pow(labels[i],2)) # y^2
+            N = preds.shape[1]
+            pearson = (N*sum_xy - sum_x*sum_y)/(torch.sqrt((N*sum_x2 - torch.pow(sum_x,2))*(N*sum_y2 - torch.pow(sum_y,2))))
+
+            #if (pearson>=0).data.cpu().numpy():    # torch.cuda.ByteTensor -->  numpy
+            #    loss += 1 - pearson
+            #else:
+            #    loss += 1 - torch.abs(pearson)
+            
+            loss += 1 - pearson
+            
+            
+        loss = loss/preds.shape[0]
+        return loss
+
+
+
+criterion_Binary = nn.BCELoss()  # binary segmentation
+criterion_Pearson = Neg_Pearson()   # rPPG singal 
+
+
+'''   ###############################################################
+#
+#   Step 2: Forward model and calculate the losses  
+#           # input 1 : facial frames --> [3, 64, 128, 128]
+            # input 2: target label mask --> 5D vector 
+#            
+            # skin_seg_label: binary skin labels --> [64, 64, 64] 
+            # ecg: groundtruth smoothed ecg signals --> [64]
+            # video_GroudTruth: the original video (before highly compressed)
+#            
+#            2.1  Forward the model, generate the enhanced video; Calculate the reconstruction loss; Calculate the PSNR loss
+#            2.2  Get the predicted skin maps and rPPG signals from the enhanced video; Calculate the skin loss and rPPG loss
+#            2.3  Get the predicted skin maps and rPPG signals from the original video; Calculate the skin loss and rPPG loss and Perceptual loss
+#
+'''   ###############################################################
+
+
+model_rPPGNet = rPPGNet()                  # load the pretrained model after "train_rPPGNet"; fix weights not updated
+model_fixOri_rPPGNet = rPPGNet()           # load the pretrained model after "train_rPPGNet"; fix weights not updated
+model_STVEN = STVEN_Generator()            # load the pretrained model after "train_STVEN"; updated the weights via BP
+
+
+########  Loss_STVEN   ###########
+x_reconst = model_STVEN(inputs, traget_label1)
+
+L1_loss = torch.mean(torch.abs(x_reconst - video_GroudTruth))
+Loss_PSNR = psnr(x_reconst, video_GroudTruth)
+Loss_STVEN = L1_loss + Loss_PSNR
+
+
+########  Loss_rPPGNet   ###########
+skin_map, rPPG_aux, rPPG, rPPG_SA1, rPPG_SA2, rPPG_SA3, rPPG_SA4, x_visual6464, x_visual3232 = model_rPPGNet(x_reconst)
+
+loss_binary = criterion_Binary(skin_map, skin_seg_label)  
+
+rPPG = (rPPG-torch.mean(rPPG)) /torch.std(rPPG)	 	# normalize2
+rPPG_SA1 = (rPPG_SA1-torch.mean(rPPG_SA1)) /torch.std(rPPG_SA1)	 	# normalize2
+rPPG_SA2 = (rPPG_SA2-torch.mean(rPPG_SA2)) /torch.std(rPPG_SA2)	 	# normalize2
+rPPG_SA3 = (rPPG_SA3-torch.mean(rPPG_SA3)) /torch.std(rPPG_SA3)	 	# normalize2
+rPPG_SA4 = (rPPG_SA4-torch.mean(rPPG_SA4)) /torch.std(rPPG_SA4)	 	# normalize2
+rPPG_aux = (rPPG_aux-torch.mean(rPPG_aux)) /torch.std(rPPG_aux)	 	# normalize2
+
+loss_ecg = criterion_Pearson(rPPG, ecg)
+loss_ecg1 = criterion_Pearson(rPPG_SA1, ecg)
+loss_ecg2 = criterion_Pearson(rPPG_SA2, ecg)
+loss_ecg3 = criterion_Pearson(rPPG_SA3, ecg)
+loss_ecg4 = criterion_Pearson(rPPG_SA4, ecg)
+loss_ecg_aux = criterion_Pearson(rPPG_aux, ecg)
+
+
+########  Loss_Perceptual   ###########
+with torch.no_grad():
+    skin_map_GT, rPPG_aux_GT, rPPG_GT, rPPG_SA1_GT, rPPG_SA2_GT, rPPG_SA3_GT, rPPG_SA4_GT, x_visual6464_GT, x_visual3232_GT = model_fixOri_rPPGNet(video_GroudTruth)
+    rPPG_GT = (rPPG_GT-torch.mean(rPPG_GT)) /torch.std(rPPG_GT)	 	# normalize2
+    rPPG_SA1_GT = (rPPG_SA1_GT-torch.mean(rPPG_SA1_GT)) /torch.std(rPPG_SA1_GT)	 	
+    rPPG_SA2_GT = (rPPG_SA2_GT-torch.mean(rPPG_SA2_GT)) /torch.std(rPPG_SA2_GT)	 	
+    rPPG_SA3_GT = (rPPG_SA3_GT-torch.mean(rPPG_SA3_GT)) /torch.std(rPPG_SA3_GT)	 	
+    rPPG_SA4_GT = (rPPG_SA4_GT-torch.mean(rPPG_SA4_GT)) /torch.std(rPPG_SA4_GT)	 	 	
+    
+loss_visual6464_Per = criterion_reg(x_visual6464, x_visual6464_GT)
+loss_visual3232_Per = criterion_reg(x_visual3232, x_visual3232_GT)
+loss_ecg_Per = criterion_Pearson(rPPG, rPPG_GT)
+loss_ecg1_Per = criterion_Pearson(rPPG_SA1, rPPG_SA1_GT)
+loss_ecg2_Per = criterion_Pearson(rPPG_SA2, rPPG_SA2_GT)
+loss_ecg3_Per = criterion_Pearson(rPPG_SA3, rPPG_SA3_GT)
+loss_ecg4_Per = criterion_Pearson(rPPG_SA4, rPPG_SA4_GT)
+loss_binary_Per = criterion_reg(skin_map, skin_map_GT)
+
+
+
+'''   ###############################################################
+#
+#   Step 3:  loss fusion and BP  
+#            # only update STVEN, fix rPPGNet
+#
+'''   ###############################################################
+
+loss_PhysNet = 0.1*loss_binary +  0.5*(loss_ecg1 + loss_ecg2 + loss_ecg3 + loss_ecg4 + loss_ecg_aux) + loss_ecg
+loss_Perceptual = 0.1*loss_binary_Per +  0.5*(loss_ecg1_Per + loss_ecg2_Per + loss_ecg3_Per + loss_ecg4_Per )+ loss_ecg_Per + loss_visual6464_Per + loss_visual3232_Per
+loss = loss_PhysNet + loss_Perceptual + 0.0001*Loss_STVEN
+
+loss.backward()
+
+# optimizer_model_STVEN.step()  # only update STVEN, fix rPPGNet
