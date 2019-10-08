@@ -1,5 +1,5 @@
 # STVEN_rPPGNet
-Main code of **ICCV2019 paper "Remote Heart Rate Measurement from Highly Compressed Facial Videos: an End-to-end Deep Learning Solution with Video Enhancement"**.   [paper.pdf](https://arxiv.org/pdf/1907.11921.pdf)   
+Main code of **ICCV2019 paper "Remote Heart Rate Measurement from Highly Compressed Facial Videos: an End-to-end Deep Learning Solution with Video Enhancement"**    [paper.pdf](https://arxiv.org/pdf/1907.11921.pdf)   
 
 Note that the specific **dataloader, data preprocessing and postprocessing** should be done by users depending on particular datasets.   
 
