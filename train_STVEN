@@ -1,3 +1,5 @@
+###   it is just for research purpose, and commercial use is not allowed  ###
+
 import torch
 from models.STVEN import *
 
