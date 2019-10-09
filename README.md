@@ -3,7 +3,9 @@ Main code of **ICCV2019 paper "Remote Heart Rate Measurement from Highly Compres
 
 Note that the specific **dataloader, data preprocessing and postprocessing** should be done by users depending on particular datasets.   
 
-![image](https://github.com/ZitongYu/STVEN_rPPGNet/blob/master/network.png)  
+![image](https://github.com/ZitongYu/STVEN_rPPGNet/blob/master/network.png)    
+
+ It is just for **research purpose**, and commercial use is not allowed.
 
 Citation
 ------- 
