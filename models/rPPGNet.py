@@ -1,3 +1,5 @@
+###   it is just for research purpose, and commercial use is not allowed  ###
+
 import math
 import torch.nn as nn
 from torch.nn.modules.utils import _triple
