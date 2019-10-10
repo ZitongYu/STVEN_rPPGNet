@@ -197,7 +197,7 @@ class rPPGNet(nn.Module):
         x_skin_main = self.skin_main(x_visual6464)    # x [8, 64, 64,64]
         x_skin_residual = self.skin_residual(x_visual6464)   # x [8, 64, 64,64]
         x_skin = self.skin_output(x_skin_main+x_skin_residual)    # x [1, 64, 64,64]
-        x_skin = x_skin[:,0,:,:,:]    # x [74, 64,64]
+        x_skin = x_skin[:,0,:,:,:]    # x [64, 64,64]
         
         
         ## branch 2: rPPG
