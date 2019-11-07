@@ -1,5 +1,3 @@
-###   it is just for research purpose, and commercial use is not allowed  ###
-
 import math
 import torch.nn as nn
 from torch.nn.modules.utils import _triple
@@ -93,7 +91,7 @@ class MixA_Module(nn.Module):
 # for open-source
 # skin segmentation + PhysNet + MixA3232 + MixA1616part4
 class rPPGNet(nn.Module):
-    def __init__(self):  
+    def __init__(self, frames=64):  
         super(rPPGNet, self).__init__()
         
         self.ConvSpa1 = nn.Sequential(
@@ -156,7 +154,7 @@ class rPPGNet(nn.Module):
         
         # global average pooling of the output
         self.pool = nn.AdaptiveAvgPool3d(1)
-        self.poolspa = nn.AdaptiveAvgPool3d((64,1,1))    # attention to this value 
+        self.poolspa = nn.AdaptiveAvgPool3d((frames,1,1))    # attention to this value 
         
 
         # skin_branch
@@ -197,7 +195,7 @@ class rPPGNet(nn.Module):
         x_skin_main = self.skin_main(x_visual6464)    # x [8, 64, 64,64]
         x_skin_residual = self.skin_residual(x_visual6464)   # x [8, 64, 64,64]
         x_skin = self.skin_output(x_skin_main+x_skin_residual)    # x [1, 64, 64,64]
-        x_skin = x_skin[:,0,:,:,:]    # x [64, 64,64]
+        x_skin = x_skin[:,0,:,:,:]    # x [74, 64,64]
         
         
         ## branch 2: rPPG
@@ -214,7 +212,7 @@ class rPPGNet(nn.Module):
         x_skin3232 = self.AvgpoolSkin_down(x_skin)          # x [64, 32,32]
         x_visual3232_SA1, Attention3232 = self.MixA_Module(x_visual3232, x_skin3232)
         x_visual3232_SA1 = self.poolspa(x_visual3232_SA1)     # x [64, 64, 1,1]    
-        ecg_SA1  = self.ConvSpa10(x_visual3232_SA1).view(-1,64)        # x [1, 64, 1,1]
+        ecg_SA1  = self.ConvSpa10(x_visual3232_SA1).squeeze(1).squeeze(-1).squeeze(-1)
         
         
         ## SkinA2_loss
@@ -222,24 +220,24 @@ class rPPGNet(nn.Module):
         x_visual1616_SA2, Attention1616 = self.MixA_Module(x_visual1616, x_skin1616)
         ## Global
         global_F = self.poolspa(x_visual1616_SA2)     # x [64, 64, 1,1]    
-        ecg_global = self.ConvSpa11(global_F).view(-1,64)        # x [1, 64, 1,1]
+        ecg_global = self.ConvSpa11(global_F).squeeze(1).squeeze(-1).squeeze(-1)
         
         ## Local
         Part1 = x_visual1616_SA2[:,:,:,:8,:8]
         Part1 = self.poolspa(Part1)     # x [64, 64, 1,1]    
-        ecg_part1 = self.ConvPart1(Part1).view(-1,64)        # x [1, 64, 1,1]
+        ecg_part1 = self.ConvSpa11(Part1).squeeze(1).squeeze(-1).squeeze(-1)
         
         Part2 = x_visual1616_SA2[:,:,:,8:16,:8]
         Part2 = self.poolspa(Part2)     # x [64, 64, 1,1]    
-        ecg_part2 = self.ConvPart2(Part2).view(-1,64)        # x [1, 64, 1,1]
+        ecg_part2 = self.ConvPart2(Part2).squeeze(1).squeeze(-1).squeeze(-1)
         
         Part3 = x_visual1616_SA2[:,:,:,:8,8:16]
         Part3 = self.poolspa(Part3)     # x [64, 64, 1,1]    
-        ecg_part3 = self.ConvPart3(Part3).view(-1,64)        # x [1, 64, 1,1]
+        ecg_part3 = self.ConvPart3(Part3).squeeze(1).squeeze(-1).squeeze(-1)
         
         Part4 = x_visual1616_SA2[:,:,:,8:16,8:16]
         Part4 = self.poolspa(Part4)     # x [64, 64, 1,1]    
-        ecg_part4 = self.ConvPart4(Part4).view(-1,64)        # x [1, 64, 1,1]
+        ecg_part4 = self.ConvPart4(Part4).squeeze(1).squeeze(-1).squeeze(-1)
         
         
 
